@@ -46,6 +46,8 @@ class PrimeKGLoader:
             dict: Analysis results
         """
         logger.info(f"Analyzing PrimeKG data from {csv_file}")
+        if self.max_rows:
+            logger.info(f"Limiting analysis to {self.max_rows:,} rows")
 
         # Read the CSV file in chunks to handle large files
         node_types = set()
@@ -59,6 +61,16 @@ class PrimeKGLoader:
         # Create a progress bar
         with tqdm(total=file_size, unit='B', unit_scale=True, desc="Analyzing data") as pbar:
             for chunk in pd.read_csv(csv_file, chunksize=self.batch_size):
+                # Check if we've reached max_rows limit
+                if self.max_rows and total_rows >= self.max_rows:
+                    logger.info(f"Reached max_rows limit ({self.max_rows:,}) during analysis, stopping")
+                    break
+
+                # Limit chunk size if we're near max_rows
+                remaining_rows = self.max_rows - total_rows if self.max_rows else len(chunk)
+                if self.max_rows and remaining_rows < len(chunk):
+                    chunk = chunk.head(remaining_rows)
+
                 total_rows += len(chunk)
 
                 # Extract unique node types
@@ -76,6 +88,10 @@ class PrimeKGLoader:
                 chunk_size = len(chunk) * 100  # Approximate bytes per row
                 pbar.update(chunk_size)
                 pbar.set_postfix({"rows": f"{total_rows:,}", "node_types": len(node_types), "rel_types": len(relation_types)})
+
+                # Break if we've reached max_rows
+                if self.max_rows and total_rows >= self.max_rows:
+                    break
 
         # Store the results
         self.node_types = node_types
