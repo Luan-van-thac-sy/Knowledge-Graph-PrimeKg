@@ -361,7 +361,7 @@ class PrimeKGLoader:
             chunk_results = []
             for _, row in chunk.iterrows():
                 # Normalize the relationship type for Neo4j
-                relation_type = row['relation'].replace(' ', '_').upper()
+                relation_type = row['relation'].replace(' ', '_').replace('-', '_').upper()
 
                 # Create source and target node labels
                 source_label = self._normalize_label(row['x_type'])
