@@ -1,6 +1,6 @@
 services:
   neo4j:
-    image: neo4j:5.13.0
+    image: neo4j:5.14.0
     container_name: primekg-neo4j
     ports:
       - "7474:7474"  # HTTP
@@ -21,6 +21,7 @@ services:
       - neo4j_logs:/logs
       - neo4j_import:/import
       - neo4j_plugins:/plugins
+      - ./database/neo4j/neo4j.dump:/var/lib/neo4j/import/neo4j.dump
     networks:
       - primekg-network
     healthcheck:
