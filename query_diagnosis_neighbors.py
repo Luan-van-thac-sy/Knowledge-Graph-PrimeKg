@@ -76,9 +76,9 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+    uri = os.getenv("NEO4J_URI", "bolt://0.tcp.ap.ngrok.io:11870")
     user = os.getenv("NEO4J_USER", "neo4j")
-    password = os.getenv("NEO4J_PASSWORD")
+    password = os.getenv("NEO4J_PASSWORD", "password")
 
     if not password:
         raise SystemExit("Error: NEO4J_PASSWORD is not set.")
@@ -103,4 +103,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+  main()
