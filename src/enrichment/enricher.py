@@ -8,6 +8,7 @@ from typing import List, Optional
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.db.neo4j_connector import Neo4jConnector, get_connector
+from src.enrichment.diagnosis_tokens import build_diagnosis_specs
 from src.enrichment.queries import (
     CAUSAL_PATHWAY_QUERY,
     COMORBID_DISEASES_QUERY,
@@ -40,13 +41,18 @@ class EnricherOrchestrator:
         self._limit_indications = limit_indications
         self._limit_contraindications = limit_contraindications
 
+    @staticmethod
+    def _diagnosis_query_params(diagnoses: List[str], limit: int) -> dict:
+        specs = build_diagnosis_specs(diagnoses)
+        if not specs:
+            return {}
+        return {"diagnosis_specs": specs, "limit": limit}
+
     def causal_pathway(self, diagnoses: List[str]) -> List[CausalPathwayEntry]:
-        if not diagnoses:
+        params = self._diagnosis_query_params(diagnoses, self._limit_phenotypes)
+        if not params:
             return []
-        rows = self._connector.execute_query(
-            CAUSAL_PATHWAY_QUERY,
-            {"diagnoses": diagnoses, "limit": self._limit_phenotypes},
-        )
+        rows = self._connector.execute_query(CAUSAL_PATHWAY_QUERY, params)
         grouped: dict[str, list[str]] = defaultdict(list)
         for row in rows:
             disease = row.get("disease")
@@ -56,12 +62,10 @@ class EnricherOrchestrator:
         return [CausalPathwayEntry(disease=d, phenotypes=p) for d, p in grouped.items()]
 
     def comorbid_diseases(self, diagnoses: List[str]) -> List[ComorbidDiseaseEntry]:
-        if not diagnoses:
+        params = self._diagnosis_query_params(diagnoses, self._limit_comorbid)
+        if not params:
             return []
-        rows = self._connector.execute_query(
-            COMORBID_DISEASES_QUERY,
-            {"diagnoses": diagnoses, "limit": self._limit_comorbid},
-        )
+        rows = self._connector.execute_query(COMORBID_DISEASES_QUERY, params)
         grouped: dict[str, list[str]] = defaultdict(list)
         for row in rows:
             disease = row.get("disease")
@@ -71,12 +75,10 @@ class EnricherOrchestrator:
         return [ComorbidDiseaseEntry(disease=d, related=r) for d, r in grouped.items()]
 
     def indications(self, diagnoses: List[str]) -> List[IndicationEntry]:
-        if not diagnoses:
+        params = self._diagnosis_query_params(diagnoses, self._limit_indications)
+        if not params:
             return []
-        rows = self._connector.execute_query(
-            INDICATIONS_QUERY,
-            {"diagnoses": diagnoses, "limit": self._limit_indications},
-        )
+        rows = self._connector.execute_query(INDICATIONS_QUERY, params)
         grouped: dict[str, list[str]] = defaultdict(list)
         for row in rows:
             disease = row.get("disease")
@@ -86,12 +88,10 @@ class EnricherOrchestrator:
         return [IndicationEntry(disease=d, indicated_drugs=drugs) for d, drugs in grouped.items()]
 
     def contraindications(self, diagnoses: List[str]) -> List[ContraindicationEntry]:
-        if not diagnoses:
+        params = self._diagnosis_query_params(diagnoses, self._limit_contraindications)
+        if not params:
             return []
-        rows = self._connector.execute_query(
-            CONTRAINDICATIONS_QUERY,
-            {"diagnoses": diagnoses, "limit": self._limit_contraindications},
-        )
+        rows = self._connector.execute_query(CONTRAINDICATIONS_QUERY, params)
         grouped: dict[str, list[str]] = defaultdict(list)
         for row in rows:
             disease = row.get("disease")
@@ -112,6 +112,8 @@ class EnricherOrchestrator:
                 drug1=row["drug1"],
                 drug2=row["drug2"],
                 interaction=row.get("interaction", "interaction"),
+                ddi_type=row.get("ddi_type"),
+                pattern=row.get("pattern"),
             )
             for row in rows
             if row.get("drug1") and row.get("drug2")

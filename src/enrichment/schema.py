@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Optional
 
 
 @dataclass
@@ -32,6 +32,8 @@ class DDIAlert:
     drug1: str
     drug2: str
     interaction: str
+    ddi_type: Optional[str] = None
+    pattern: Optional[str] = None
 
 
 @dataclass
@@ -61,7 +63,13 @@ class MedicalKnowledgeContext:
                 for e in self.contraindications
             ],
             "ddi_alerts": [
-                {"drug1": a.drug1, "drug2": a.drug2, "interaction": a.interaction}
+                {
+                    "drug1": a.drug1,
+                    "drug2": a.drug2,
+                    "interaction": a.interaction,
+                    "ddi_type": a.ddi_type,
+                    "pattern": a.pattern,
+                }
                 for a in self.ddi_alerts
             ],
         }

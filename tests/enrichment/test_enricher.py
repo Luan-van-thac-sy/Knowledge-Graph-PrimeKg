@@ -90,13 +90,21 @@ def test_contraindications_groups_drugs_by_disease(enricher, mock_connector):
 
 def test_ddi_alerts_returns_interactions(enricher, mock_connector):
     mock_connector.execute_query.return_value = [
-        {"drug1": "Digoxin", "drug2": "Furosemide", "interaction": "hypokalemia"},
+        {
+            "drug1": "Digoxin",
+            "drug2": "Furosemide",
+            "interaction": "Adverse interaction",
+            "ddi_type": "29",
+            "pattern": "The risk or severity of .*",
+        },
     ]
     result = enricher.ddi_alerts(["DB00390", "DB00695"])
     assert len(result) == 1
     assert result[0].drug1 == "Digoxin"
     assert result[0].drug2 == "Furosemide"
-    assert result[0].interaction == "hypokalemia"
+    assert result[0].interaction == "Adverse interaction"
+    assert result[0].ddi_type == "29"
+    assert result[0].pattern == "The risk or severity of .*"
 
 
 def test_ddi_alerts_empty_for_single_drug(enricher, mock_connector):
